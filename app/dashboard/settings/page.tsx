@@ -3,7 +3,7 @@ import prisma from "@/app/utils/db";
 import { requireUser } from "@/app/utils/hooks";
 
 async function getData(userId: string) {
-  const data = await (prisma as any).company.findUnique({
+  const data = await prisma.company.findUnique({
     where: {
       userId: userId,
     },

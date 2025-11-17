@@ -46,13 +46,13 @@ export async function POST(
     
     const invoiceUrl = `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/invoices/${invoiceId}`;
     
-    const company = invoiceData.user?.company;
+    const companyData = invoiceData.user?.company;
     
     // Use company info if available, otherwise fallback to invoice data
-    const companyName = company?.name || invoiceData.fromName;
-    const companyEmail = company?.email || invoiceData.fromEmail;
-    const companyAddress = company?.address || invoiceData.fromAddress;
-    const companyPhone = company?.phone;
+    const companyName = companyData?.name || invoiceData.fromName;
+    const companyEmail = companyData?.email || invoiceData.fromEmail;
+    const companyAddress = companyData?.address || invoiceData.fromAddress;
+    const companyPhone = companyData?.phone;
     const companyWebsite = company?.website;
     
     const htmlContent = `

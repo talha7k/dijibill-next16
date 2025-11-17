@@ -2,9 +2,10 @@
 
 import { requireUser } from "./utils/hooks";
 import { parseWithZod } from "@conform-to/zod";
-import { invoiceSchema, onboardingSchema, companySchema } from "./utils/zodSchemas";
+import { invoiceSchema, onboardingSchema, companySchema, paymentSchema } from "./utils/zodSchemas";
 import prisma from "./utils/db";
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import { emailClient } from "./utils/mailtrap";
 import { formatCurrency } from "./utils/formatCurrency";
 
@@ -140,7 +141,7 @@ export async function editInvoice(prevState: unknown, formData: FormData) {
   });
 
   // Get company settings for sender info
-  const userCompany = await (prisma as any).company.findUnique({
+  const userCompany = await prisma.company.findUnique({
     where: { userId: session.user?.id },
   });
   
@@ -217,7 +218,7 @@ export async function updateCompany(prevState: unknown, formData: FormData) {
 
   if (id) {
     // Update existing company
-    await (prisma as any).company.update({
+    await prisma.company.update({
       where: {
         id: id,
         userId: session.user?.id,
@@ -234,7 +235,7 @@ export async function updateCompany(prevState: unknown, formData: FormData) {
     });
   } else {
     // Create new company
-    await (prisma as any).company.create({
+    await prisma.company.create({
       data: {
         name: submission.value.name,
         email: submission.value.email,
@@ -248,5 +249,57 @@ export async function updateCompany(prevState: unknown, formData: FormData) {
     });
   }
 
+  return { success: true };
+}
+
+export async function recordPayment(
+  prevState: unknown,
+  formData: FormData,
+) {
+  const session = await requireUser();
+
+  const submission = await parseWithZod(formData, {
+    schema: paymentSchema,
+  });
+
+  if (submission.status !== "success") {
+    return submission.reply();
+  }
+
+  const invoiceId = formData.get("invoiceId") as string;
+
+  // Verify user owns the invoice
+  const invoice = await prisma.invoice.findUnique({
+    where: { id: invoiceId, userId: session.user?.id },
+  });
+
+  if (!invoice) {
+    return { error: "Invoice not found" };
+  }
+
+  // Create payment record
+  await prisma.payment.create({
+    data: {
+      amount: submission.value.amount,
+      method: submission.value.method || null,
+      notes: submission.value.notes || null,
+      invoiceId: invoiceId,
+    },
+  });
+
+  // Update invoice total paid
+  const newTotalPaid = invoice.totalPaid + submission.value.amount;
+  const newStatus = newTotalPaid >= invoice.total ? "PAID" : 
+                    newTotalPaid > 0 ? "PARTIALLY_PAID" : "PENDING";
+
+  await prisma.invoice.update({
+    where: { id: invoiceId },
+    data: {
+      totalPaid: newTotalPaid,
+      status: newStatus,
+    },
+  });
+
+  revalidatePath(`/dashboard/invoices/${invoiceId}`);
   return { success: true };
 }
