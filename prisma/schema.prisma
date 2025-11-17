@@ -85,6 +85,7 @@ model Invoice {
 
   invoiceName   String
   total         Int
+  totalPaid     Int      @default(0)
   status        InvoiceStatus
   date          DateTime
   dueDate       Int
@@ -98,17 +99,46 @@ model Invoice {
   invoiceNumber Int
   note          String?
 
-  invoiceItemDescription String
-  invoiceItemQuantity    Int
-  invoiceItemRate        Int
+  invoiceItems InvoiceItem[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   User      User?    @relation(fields: [userId], references: [id])
   userId    String?
+  payments  Payment[]
+}
+
+model InvoiceItem {
+  id          String @id @default(cuid())
+  description String
+  quantity    Int
+  rate        Int
+  
+  invoice     Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  invoiceId   String
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Payment {
+  id          String   @id @default(cuid())
+  amount      Int
+  paymentDate DateTime @default(now())
+  method      String?
+  notes       String?
+  
+  invoice     Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  invoiceId   String
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 enum InvoiceStatus {
   PAID
   PENDING
+  PARTIALLY_PAID
+  OVERDUE
+  EMAILED
 }

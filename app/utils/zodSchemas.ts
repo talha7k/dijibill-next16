@@ -10,7 +10,7 @@ export const invoiceSchema = z.object({
   invoiceName: z.string().min(1, "Invoice Name is required"),
   total: z.number().min(1, "1$ is minimum"),
 
-  status: z.enum(["PAID", "PENDING"]).default("PENDING"),
+  status: z.enum(["PAID", "PENDING", "PARTIALLY_PAID", "OVERDUE", "EMAILED"]).default("PENDING"),
 
   date: z.string().min(1, "Date is required"),
 
@@ -34,9 +34,20 @@ export const invoiceSchema = z.object({
 
   note: z.string().optional(),
 
-  invoiceItemDescription: z.string().min(1, "Description is required"),
+  invoiceItems: z.array(z.object({
+    description: z.string().min(1, "Description is required"),
+    quantity: z.number().min(1, "Quantity min 1"),
+    rate: z.number().min(1, "Rate min 1"),
+  })).min(1, "At least one item is required"),
 
-  invoiceItemQuantity: z.number().min(1, "Qunatity min 1"),
+  // Backward compatibility fields
+  invoiceItemDescription: z.string().optional(),
+  invoiceItemQuantity: z.number().optional(),
+  invoiceItemRate: z.number().optional(),
+});
 
-  invoiceItemRate: z.number().min(1, "Rate min 1"),
+export const paymentSchema = z.object({
+  amount: z.number().min(1, "Payment amount must be greater than 0"),
+  method: z.string().optional(),
+  notes: z.string().optional(),
 });
