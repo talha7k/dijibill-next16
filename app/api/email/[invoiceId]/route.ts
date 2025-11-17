@@ -23,7 +23,7 @@ export async function POST(
       },
       include: {
         invoiceItems: true,
-        user: {
+        User: {
           include: {
             company: true,
           },
@@ -36,7 +36,7 @@ export async function POST(
     }
 
     // Get company settings for sender info
-    const company = invoiceData.user?.company;
+    const company = invoiceData.User?.company;
     const sender = {
       email: company?.email || invoiceData.fromEmail,
       name: company?.name || invoiceData.fromName,
@@ -46,7 +46,7 @@ export async function POST(
     
     const invoiceUrl = `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/invoices/${invoiceId}`;
     
-    const companyData = invoiceData.user?.company;
+    const companyData = invoiceData.User?.company;
     
     // Use company info if available, otherwise fallback to invoice data
     const companyName = companyData?.name || invoiceData.fromName;

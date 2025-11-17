@@ -21,7 +21,7 @@ export async function GET(
     },
     include: {
       invoiceItems: true,
-      user: {
+      User: {
         include: {
           company: true,
         },
@@ -40,7 +40,7 @@ export async function GET(
   });
 
   // Add company logo if available
-  const company = data.user?.company;
+  const company = data.User?.company;
   try {
     let logoData;
     if (company?.logo) {
@@ -143,12 +143,8 @@ export async function GET(
   
   let currentY = tableStartY + 10;
   
-  // Handle backward compatibility for single item
-  const items = data.invoiceItems.length > 0 ? data.invoiceItems : [{
-    description: (data as { invoiceItemDescription: string }).invoiceItemDescription,
-    quantity: (data as { invoiceItemQuantity: number }).invoiceItemQuantity,
-    rate: (data as { invoiceItemRate: number }).invoiceItemRate
-  }];
+  // Use invoice items
+  const items = data.invoiceItems;
   
   items.forEach((item) => {
     const descriptionLines = pdf.splitTextToSize(item.description, 85);

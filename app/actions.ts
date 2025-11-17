@@ -4,7 +4,6 @@ import { requireUser } from "./utils/hooks";
 import { parseWithZod } from "@conform-to/zod";
 import { invoiceSchema, onboardingSchema, companySchema, paymentSchema } from "./utils/zodSchemas";
 import prisma from "./utils/db";
-import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { emailClient } from "./utils/mailtrap";
 import { formatCurrency } from "./utils/formatCurrency";
@@ -32,7 +31,8 @@ export async function onboardUser(prevState: unknown, formData: FormData) {
     },
   });
 
-  return redirect("/dashboard");
+  return   revalidatePath("/dashboard");
+  return { success: true };
 }
 
 export async function createInvoice(prevState: unknown, formData: FormData) {
@@ -57,15 +57,15 @@ export async function createInvoice(prevState: unknown, formData: FormData) {
       fromAddress: submission.value.fromAddress,
       fromEmail: submission.value.fromEmail,
       fromName: submission.value.fromName,
-      invoiceItemDescription: submission.value.invoiceItemDescription || "",
-      invoiceItemQuantity: submission.value.invoiceItemQuantity || 0,
-      invoiceItemRate: submission.value.invoiceItemRate || 0,
       invoiceName: submission.value.invoiceName,
       invoiceNumber: submission.value.invoiceNumber,
       status: submission.value.status,
       total: submission.value.total,
       note: submission.value.note,
       userId: session.user?.id,
+      invoiceItems: {
+        create: submission.value.invoiceItems,
+      },
     },
   });
 
@@ -100,7 +100,8 @@ export async function createInvoice(prevState: unknown, formData: FormData) {
     },
   });
 
-  return redirect("/dashboard/invoices");
+  revalidatePath("/dashboard/invoices");
+  return { success: true };
 }
 
 export async function editInvoice(prevState: unknown, formData: FormData) {
@@ -113,6 +114,13 @@ export async function editInvoice(prevState: unknown, formData: FormData) {
   if (submission.status !== "success") {
     return submission.reply();
   }
+
+  // First delete existing invoice items
+  await prisma.invoiceItem.deleteMany({
+    where: {
+      invoiceId: formData.get("id") as string,
+    },
+  });
 
   const data = await prisma.invoice.update({
     where: {
@@ -129,14 +137,14 @@ export async function editInvoice(prevState: unknown, formData: FormData) {
       fromAddress: submission.value.fromAddress,
       fromEmail: submission.value.fromEmail,
       fromName: submission.value.fromName,
-      invoiceItemDescription: submission.value.invoiceItemDescription || "",
-      invoiceItemQuantity: submission.value.invoiceItemQuantity || 0,
-      invoiceItemRate: submission.value.invoiceItemRate || 0,
       invoiceName: submission.value.invoiceName,
       invoiceNumber: submission.value.invoiceNumber,
       status: submission.value.status,
       total: submission.value.total,
       note: submission.value.note,
+      invoiceItems: {
+        create: submission.value.invoiceItems,
+      },
     },
   });
 
@@ -171,7 +179,8 @@ export async function editInvoice(prevState: unknown, formData: FormData) {
     },
   });
 
-  return redirect("/dashboard/invoices");
+  revalidatePath("/dashboard/invoices");
+  return { success: true };
 }
 
 export async function DeleteInvoice(invoiceId: string) {
@@ -184,7 +193,8 @@ export async function DeleteInvoice(invoiceId: string) {
     },
   });
 
-  return redirect("/dashboard/invoices");
+  revalidatePath("/dashboard/invoices");
+  return { success: true };
 }
 
 export async function MarkAsPaidAction(invoiceId: string) {
@@ -200,7 +210,8 @@ export async function MarkAsPaidAction(invoiceId: string) {
     },
   });
 
-  return redirect("/dashboard/invoices");
+  revalidatePath("/dashboard/invoices");
+  return { success: true };
 }
 
 export async function updateCompany(prevState: unknown, formData: FormData) {
