@@ -85,7 +85,7 @@ export function CreateInvoice({
               <Input
                 name={fields.invoiceName.name}
                 key={fields.invoiceName.key}
-                defaultValue={fields.invoiceName.initialValue}
+                defaultValue={fields.invoiceName.initialValue as string}
                 placeholder="Test 123"
               />
             </div>
@@ -102,7 +102,7 @@ export function CreateInvoice({
                 <Input
                   name={fields.invoiceNumber.name}
                   key={fields.invoiceNumber.key}
-                  defaultValue={fields.invoiceNumber.initialValue}
+                  defaultValue={fields.invoiceNumber.initialValue as string}
                   className="rounded-l-none"
                   placeholder="5"
                 />
@@ -172,7 +172,7 @@ export function CreateInvoice({
                 <Input
                   name={fields.clientName.name}
                   key={fields.clientName.key}
-                  defaultValue={fields.clientName.initialValue}
+                  defaultValue={fields.clientName.initialValue as string}
                   placeholder="Client Name"
                 />
                 <p className="text-red-500 text-sm">
@@ -181,7 +181,7 @@ export function CreateInvoice({
                 <Input
                   name={fields.clientEmail.name}
                   key={fields.clientEmail.key}
-                  defaultValue={fields.clientEmail.initialValue}
+                  defaultValue={fields.clientEmail.initialValue as string}
                   placeholder="Client Email"
                 />
                 <p className="text-red-500 text-sm">
@@ -190,7 +190,7 @@ export function CreateInvoice({
                 <Input
                   name={fields.clientAddress.name}
                   key={fields.clientAddress.key}
-                  defaultValue={fields.clientAddress.initialValue}
+                  defaultValue={fields.clientAddress.initialValue as string}
                   placeholder="Client Address"
                 />
                 <p className="text-red-500 text-sm">
@@ -239,7 +239,7 @@ export function CreateInvoice({
               <Select
                 name={fields.dueDate.name}
                 key={fields.dueDate.key}
-                defaultValue={fields.dueDate.initialValue}
+                defaultValue={fields.dueDate.initialValue as string}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select due date" />
@@ -267,7 +267,7 @@ export function CreateInvoice({
                 <Textarea
                   name={fields.invoiceItemDescription.name}
                   key={fields.invoiceItemDescription.key}
-                  defaultValue={fields.invoiceItemDescription.initialValue}
+                  defaultValue={fields.invoiceItemDescription.initialValue as string}
                   placeholder="Item name & description"
                 />
                 <p className="text-red-500 text-sm">
@@ -340,7 +340,7 @@ export function CreateInvoice({
             <Textarea
               name={fields.note.name}
               key={fields.note.key}
-              defaultValue={fields.note.initialValue}
+              defaultValue={fields.note.initialValue as string}
               placeholder="Add your Note/s right here..."
             />
             <p className="text-red-500 text-sm">{fields.note.errors}</p>

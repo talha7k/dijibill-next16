@@ -56,7 +56,7 @@ export default function Onboarding() {
                 <Input
                   name={fields.firstName.name}
                   key={fields.firstName.key}
-                  defaultValue={fields.firstName.initialValue}
+                  defaultValue={fields.firstName.initialValue as string}
                   placeholder="John"
                 />
                 <p className="text-red-500 text-sm">
@@ -68,7 +68,7 @@ export default function Onboarding() {
                 <Input
                   name={fields.lastName.name}
                   key={fields.lastName.key}
-                  defaultValue={fields.lastName.initialValue}
+                  defaultValue={fields.lastName.initialValue as string}
                   placeholder="Doe"
                 />
                 <p className="text-red-500 text-sm">{fields.lastName.errors}</p>
@@ -80,7 +80,7 @@ export default function Onboarding() {
               <Input
                 name={fields.address.name}
                 key={fields.address.key}
-                defaultValue={fields.address.initialValue}
+                defaultValue={fields.address.initialValue as string}
                 placeholder="Chad street 123"
               />
               <p className="text-red-500 text-sm">{fields.address.errors}</p>

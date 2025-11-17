@@ -7,12 +7,13 @@ import prisma from "./utils/db";
 import { redirect } from "next/navigation";
 import { emailClient } from "./utils/mailtrap";
 import { formatCurrency } from "./utils/formatCurrency";
+import { ZodTypeAny } from "zod";
 
 export async function onboardUser(prevState: any, formData: FormData) {
   const session = await requireUser();
 
   const submission = parseWithZod(formData, {
-    schema: onboardingSchema,
+    schema: onboardingSchema as any,
   });
 
   if (submission.status !== "success") {
@@ -37,7 +38,7 @@ export async function createInvoice(prevState: any, formData: FormData) {
   const session = await requireUser();
 
   const submission = parseWithZod(formData, {
-    schema: invoiceSchema,
+    schema: invoiceSchema as any,
   });
 
   if (submission.status !== "success") {
@@ -100,7 +101,7 @@ export async function editInvoice(prevState: any, formData: FormData) {
   const session = await requireUser();
 
   const submission = parseWithZod(formData, {
-    schema: invoiceSchema,
+    schema: invoiceSchema as any,
   });
 
   if (submission.status !== "success") {
