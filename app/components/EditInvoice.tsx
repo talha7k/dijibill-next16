@@ -31,7 +31,7 @@ import { getInputProps } from "@conform-to/react";
 import { Prisma } from "@prisma/client";
 
 interface iAppProps {
-  data: Prisma.InvoiceGetPayload<{}>;
+  data: Prisma.InvoiceGetPayload<object>;
 }
 
 export function EditInvoice({ data }: iAppProps) {
@@ -284,7 +284,7 @@ export function EditInvoice({ data }: iAppProps) {
                 <Input
                   value={formatCurrency({
                     amount: calcualteTotal,
-                    currency: currency as any,
+                    currency: currency as "USD" | "EUR",
                   })}
                   disabled
                 />
@@ -299,7 +299,7 @@ export function EditInvoice({ data }: iAppProps) {
                 <span>
                   {formatCurrency({
                     amount: calcualteTotal,
-                    currency: currency as any,
+                    currency: currency as "USD" | "EUR",
                   })}
                 </span>
               </div>
@@ -308,7 +308,7 @@ export function EditInvoice({ data }: iAppProps) {
                 <span className="font-medium underline underline-offset-2">
                   {formatCurrency({
                     amount: calcualteTotal,
-                    currency: currency as any,
+                    currency: currency as "USD" | "EUR",
                   })}
                 </span>
               </div>

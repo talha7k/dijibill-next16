@@ -50,7 +50,7 @@ export async function RecentInvoices() {
               +
               {formatCurrency({
                 amount: item.total,
-                currency: item.currency as any,
+                currency: item.currency as "USD" | "EUR",
               })}
             </div>
           </div>

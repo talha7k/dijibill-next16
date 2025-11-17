@@ -38,7 +38,7 @@ export async function createInvoice(prevState: unknown, formData: FormData) {
   const session = await requireUser();
 
   const submission = parseWithZod(formData, {
-    schema: invoiceSchema as any,
+    schema: invoiceSchema,
   });
 
   if (submission.status !== "success") {
@@ -85,7 +85,7 @@ export async function createInvoice(prevState: unknown, formData: FormData) {
       }).format(new Date(submission.value.date)),
       invoiceAmount: formatCurrency({
         amount: submission.value.total,
-        currency: submission.value.currency as any,
+        currency: submission.value.currency as "USD" | "EUR",
       }),
       invoiceLink:
         process.env.NODE_ENV !== "production"
@@ -101,7 +101,7 @@ export async function editInvoice(prevState: unknown, formData: FormData) {
   const session = await requireUser();
 
   const submission = parseWithZod(formData, {
-    schema: invoiceSchema as any,
+    schema: invoiceSchema,
   });
 
   if (submission.status !== "success") {
@@ -151,7 +151,7 @@ export async function editInvoice(prevState: unknown, formData: FormData) {
       }).format(new Date(submission.value.date)),
       invoiceAmount: formatCurrency({
         amount: submission.value.total,
-        currency: submission.value.currency as any,
+        currency: submission.value.currency as "USD" | "EUR",
       }),
       invoiceLink:
         process.env.NODE_ENV !== "production"

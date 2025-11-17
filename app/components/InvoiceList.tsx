@@ -66,7 +66,7 @@ export async function InvoiceList() {
                 <TableCell>
                   {formatCurrency({
                     amount: invoice.total,
-                    currency: invoice.currency as any,
+                    currency: invoice.currency as "USD" | "EUR",
                   })}
                 </TableCell>
                 <TableCell>

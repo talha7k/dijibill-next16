@@ -96,13 +96,13 @@ export async function GET(
   pdf.text(
     formatCurrency({
       amount: data.invoiceItemRate,
-      currency: data.currency as any,
+      currency: data.currency as "USD" | "EUR",
     }),
     130,
     110
   );
   pdf.text(
-    formatCurrency({ amount: data.total, currency: data.currency as any }),
+    formatCurrency({ amount: data.total, currency: data.currency as "USD" | "EUR" }),
     160,
     110
   );
@@ -112,7 +112,7 @@ export async function GET(
   pdf.setFont("helvetica", "bold");
   pdf.text(`Total (${data.currency})`, 130, 130);
   pdf.text(
-    formatCurrency({ amount: data.total, currency: data.currency as any }),
+    formatCurrency({ amount: data.total, currency: data.currency as "USD" | "EUR" }),
     160,
     130
   );
