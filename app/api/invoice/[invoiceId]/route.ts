@@ -21,6 +21,11 @@ export async function GET(
     },
     include: {
       invoiceItems: true,
+      user: {
+        include: {
+          company: true,
+        },
+      },
     },
   });
 
@@ -35,15 +40,24 @@ export async function GET(
   });
 
   // Add company logo if available
+  const company = data.user?.company;
   try {
-    const logoPath = path.join(process.cwd(), "public", "logo.svg");
-    const logoData = await readFile(logoPath, "base64");
+    let logoData;
+    if (company?.logo) {
+      // Use company logo URL if available
+      const response = await fetch(company.logo);
+      logoData = Buffer.from(await response.arrayBuffer()).toString('base64');
+    } else {
+      // Fallback to default logo
+      const logoPath = path.join(process.cwd(), "public", "logo.svg");
+      logoData = await readFile(logoPath, "base64");
+    }
     
     // Add logo to the header (positioned on the right side)
     pdf.addImage(logoData, "SVG", 150, 10, 40, 20);
-  } catch (error) {
+  } catch {
     // Logo not found, continue without it
-    console.log("Logo not found, proceeding without logo");
+    console.warn("Logo not found, proceeding without logo");
   }
 
   // Header section with background
@@ -76,13 +90,19 @@ export async function GET(
   pdf.setFont("helvetica", "normal");
   pdf.setFontSize(10);
   pdf.setTextColor(75, 85, 99);
-  const fromLines = pdf.splitTextToSize(data.fromName, 80);
+  
+  // Use company info if available, otherwise fallback to invoice data
+  const fromName = company?.name || data.fromName;
+  const fromEmail = company?.email || data.fromEmail;
+  const fromAddress = company?.address || data.fromAddress;
+  
+  const fromLines = pdf.splitTextToSize(fromName, 80);
   pdf.text(fromLines, 20, 62);
   
-  const fromEmailLines = pdf.splitTextToSize(data.fromEmail, 80);
+  const fromEmailLines = pdf.splitTextToSize(fromEmail, 80);
   pdf.text(fromEmailLines, 20, 68);
   
-  const fromAddressLines = pdf.splitTextToSize(data.fromAddress, 80);
+  const fromAddressLines = pdf.splitTextToSize(fromAddress, 80);
   pdf.text(fromAddressLines, 20, 74);
 
   // Client Section with styling
@@ -125,9 +145,9 @@ export async function GET(
   
   // Handle backward compatibility for single item
   const items = data.invoiceItems.length > 0 ? data.invoiceItems : [{
-    description: data.invoiceItemDescription,
-    quantity: data.invoiceItemQuantity,
-    rate: data.invoiceItemRate
+    description: (data as { invoiceItemDescription: string }).invoiceItemDescription,
+    quantity: (data as { invoiceItemQuantity: number }).invoiceItemQuantity,
+    rate: (data as { invoiceItemRate: number }).invoiceItemRate
   }];
   
   items.forEach((item) => {

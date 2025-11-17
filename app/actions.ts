@@ -2,7 +2,7 @@
 
 import { requireUser } from "./utils/hooks";
 import { parseWithZod } from "@conform-to/zod";
-import { invoiceSchema, onboardingSchema } from "./utils/zodSchemas";
+import { invoiceSchema, onboardingSchema, companySchema } from "./utils/zodSchemas";
 import prisma from "./utils/db";
 import { redirect } from "next/navigation";
 import { emailClient } from "./utils/mailtrap";
@@ -56,9 +56,9 @@ export async function createInvoice(prevState: unknown, formData: FormData) {
       fromAddress: submission.value.fromAddress,
       fromEmail: submission.value.fromEmail,
       fromName: submission.value.fromName,
-      invoiceItemDescription: submission.value.invoiceItemDescription,
-      invoiceItemQuantity: submission.value.invoiceItemQuantity,
-      invoiceItemRate: submission.value.invoiceItemRate,
+      invoiceItemDescription: submission.value.invoiceItemDescription || "",
+      invoiceItemQuantity: submission.value.invoiceItemQuantity || 0,
+      invoiceItemRate: submission.value.invoiceItemRate || 0,
       invoiceName: submission.value.invoiceName,
       invoiceNumber: submission.value.invoiceNumber,
       status: submission.value.status,
@@ -68,9 +68,14 @@ export async function createInvoice(prevState: unknown, formData: FormData) {
     },
   });
 
+  // Get company settings for sender info
+  const userCompany = await prisma.company.findUnique({
+    where: { userId: session.user?.id },
+  });
+  
   const sender = {
-    email: process.env.SENDER_EMAIL!,
-    name: process.env.SENDER_NAME!,
+    email: userCompany?.email || submission.value.fromEmail,
+    name: userCompany?.name || submission.value.fromName,
   };
 
   emailClient.send({
@@ -123,9 +128,9 @@ export async function editInvoice(prevState: unknown, formData: FormData) {
       fromAddress: submission.value.fromAddress,
       fromEmail: submission.value.fromEmail,
       fromName: submission.value.fromName,
-      invoiceItemDescription: submission.value.invoiceItemDescription,
-      invoiceItemQuantity: submission.value.invoiceItemQuantity,
-      invoiceItemRate: submission.value.invoiceItemRate,
+      invoiceItemDescription: submission.value.invoiceItemDescription || "",
+      invoiceItemQuantity: submission.value.invoiceItemQuantity || 0,
+      invoiceItemRate: submission.value.invoiceItemRate || 0,
       invoiceName: submission.value.invoiceName,
       invoiceNumber: submission.value.invoiceNumber,
       status: submission.value.status,
@@ -134,9 +139,14 @@ export async function editInvoice(prevState: unknown, formData: FormData) {
     },
   });
 
+  // Get company settings for sender info
+  const userCompany = await (prisma as any).company.findUnique({
+    where: { userId: session.user?.id },
+  });
+  
   const sender = {
-    email: process.env.SENDER_EMAIL!,
-    name: process.env.SENDER_NAME!,
+    email: userCompany?.email || submission.value.fromEmail,
+    name: userCompany?.name || submission.value.fromName,
   };
 
   emailClient.send({
@@ -190,4 +200,53 @@ export async function MarkAsPaidAction(invoiceId: string) {
   });
 
   return redirect("/dashboard/invoices");
+}
+
+export async function updateCompany(prevState: unknown, formData: FormData) {
+  const session = await requireUser();
+
+  const submission = parseWithZod(formData, {
+    schema: companySchema,
+  });
+
+  if (submission.status !== "success") {
+    return submission.reply();
+  }
+
+  const id = formData.get("id") as string;
+
+  if (id) {
+    // Update existing company
+    await (prisma as any).company.update({
+      where: {
+        id: id,
+        userId: session.user?.id,
+      },
+      data: {
+        name: submission.value.name,
+        email: submission.value.email,
+        address: submission.value.address || null,
+        phone: submission.value.phone || null,
+        website: submission.value.website || null,
+        logo: submission.value.logo || null,
+        taxId: submission.value.taxId || null,
+      },
+    });
+  } else {
+    // Create new company
+    await (prisma as any).company.create({
+      data: {
+        name: submission.value.name,
+        email: submission.value.email,
+        address: submission.value.address || null,
+        phone: submission.value.phone || null,
+        website: submission.value.website || null,
+        logo: submission.value.logo || null,
+        taxId: submission.value.taxId || null,
+        userId: session.user?.id as string,
+      },
+    });
+  }
+
+  return { success: true };
 }

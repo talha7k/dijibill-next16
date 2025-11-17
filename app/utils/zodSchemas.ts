@@ -46,6 +46,16 @@ export const invoiceSchema = z.object({
   invoiceItemRate: z.number().optional(),
 });
 
+export const companySchema = z.object({
+  name: z.string().min(1, "Company name is required"),
+  email: z.string().email("Invalid email address"),
+  address: z.string().optional(),
+  phone: z.string().optional(),
+  website: z.string().url("Invalid website URL").optional().or(z.literal("")),
+  logo: z.string().optional(),
+  taxId: z.string().optional(),
+});
+
 export const paymentSchema = z.object({
   amount: z.number().min(1, "Payment amount must be greater than 0"),
   method: z.string().optional(),

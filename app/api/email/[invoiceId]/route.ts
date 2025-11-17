@@ -23,6 +23,11 @@ export async function POST(
       },
       include: {
         invoiceItems: true,
+        user: {
+          include: {
+            company: true,
+          },
+        },
       },
     });
 
@@ -30,14 +35,25 @@ export async function POST(
       return NextResponse.json({ error: "Invoice not found" }, { status: 404 });
     }
 
+    // Get company settings for sender info
+    const company = invoiceData.user?.company;
     const sender = {
-      email: process.env.SENDER_EMAIL!,
-      name: process.env.SENDER_NAME!,
+      email: company?.email || invoiceData.fromEmail,
+      name: company?.name || invoiceData.fromName,
     };
 
     const { formatCurrency } = await import("@/app/utils/formatCurrency");
     
     const invoiceUrl = `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/invoices/${invoiceId}`;
+    
+    const company = invoiceData.user?.company;
+    
+    // Use company info if available, otherwise fallback to invoice data
+    const companyName = company?.name || invoiceData.fromName;
+    const companyEmail = company?.email || invoiceData.fromEmail;
+    const companyAddress = company?.address || invoiceData.fromAddress;
+    const companyPhone = company?.phone;
+    const companyWebsite = company?.website;
     
     const htmlContent = `
 <!DOCTYPE html>
@@ -166,7 +182,7 @@ export async function POST(
       <div class="content">
         <p>Dear ${invoiceData.clientName},</p>
         
-        <p>I hope this email finds you well. Please find your invoice details below for the services provided.</p>
+        <p>I hope this email finds you well. Please find your invoice details below for services provided.</p>
         
         <div class="invoice-details">
           <div class="detail-row">
@@ -208,15 +224,17 @@ export async function POST(
         <p>Thank you for your business!</p>
         
         <div class="company-info">
-          <strong>${invoiceData.fromName}</strong><br>
-          ${invoiceData.fromEmail}<br>
-          ${invoiceData.fromAddress}
+          <strong>${companyName}</strong><br>
+          ${companyEmail}<br>
+          ${companyAddress}<br>
+          ${companyPhone ? `Phone: ${companyPhone}<br>` : ''}
+          ${companyWebsite ? `Website: <a href="${companyWebsite}" style="color: #3b82f6;">${companyWebsite}</a><br>` : ''}
         </div>
       </div>
       
       <div class="footer">
-        <p>This is an automated message from ${process.env.COMPANY_NAME || 'Invoice Platform'}</p>
-        <p>© ${new Date().getFullYear()} ${process.env.COMPANY_NAME || 'Invoice Platform'}. All rights reserved.</p>
+        <p>This is an automated message from ${companyName || 'Invoice Platform'}</p>
+        <p>© ${new Date().getFullYear()} ${companyName || 'Invoice Platform'}. All rights reserved.</p>
       </div>
     </div>
   </body>

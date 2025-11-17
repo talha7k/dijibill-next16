@@ -2,20 +2,26 @@ import { EditInvoice } from "@/app/components/EditInvoice";
 import prisma from "@/app/utils/db";
 import { requireUser } from "@/app/utils/hooks";
 import { notFound } from "next/navigation";
+import { getPaymentHistory } from "@/app/utils/payments";
 
 async function getData(invoiceId: string, userId: string) {
-  const data = await prisma.invoice.findUnique({
+  const invoice = await prisma.invoice.findUnique({
     where: {
       id: invoiceId,
       userId: userId,
     },
   });
 
-  if (!data) {
+  if (!invoice) {
     return notFound();
   }
 
-  return data;
+  const payments = await getPaymentHistory(invoiceId, userId);
+
+  return {
+    ...invoice,
+    payments,
+  };
 }
 
 type Params = Promise<{ invoiceId: string }>;

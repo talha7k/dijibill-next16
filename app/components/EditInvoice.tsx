@@ -29,9 +29,14 @@ import { editInvoice } from "../actions";
 import { formatCurrency } from "../utils/formatCurrency";
 import { getInputProps } from "@conform-to/react";
 import { Prisma } from "@prisma/client";
+import { Payment } from "../utils/payments";
+import { PaymentRecorder } from "./PaymentRecorder";
 
 interface iAppProps {
-  data: Prisma.InvoiceGetPayload<object>;
+  data: Prisma.InvoiceGetPayload<object> & {
+    payments?: Payment[];
+    totalPaid?: number;
+  };
 }
 
 export function EditInvoice({ data }: iAppProps) {
@@ -50,15 +55,16 @@ export function EditInvoice({ data }: iAppProps) {
   });
 
   const [selectedDate, setSelectedDate] = useState(data.date);
-  const [rate, setRate] = useState(data.invoiceItemRate.toString());
-  const [quantity, setQuantity] = useState(data.invoiceItemQuantity.toString());
+  const [rate, setRate] = useState((data as { invoiceItemRate?: number }).invoiceItemRate?.toString() || "0");
+  const [quantity, setQuantity] = useState((data as { invoiceItemQuantity?: number }).invoiceItemQuantity?.toString() || "1");
   const [currency, setCurrency] = useState(data.currency);
 
   const calcualteTotal = (Number(quantity) || 0) * (Number(rate) || 0);
   return (
-    <Card className="w-full max-w-4xl mx-auto">
-      <CardContent className="p-6">
-        <form id={form.id} action={action} onSubmit={form.onSubmit} noValidate>
+    <div className="space-y-8">
+      <Card className="w-full max-w-4xl mx-auto">
+        <CardContent className="p-6">
+          <form id={form.id} action={action} onSubmit={form.onSubmit} noValidate>
           <input
             type="hidden"
             name={fields.date.name}
@@ -251,7 +257,7 @@ export function EditInvoice({ data }: iAppProps) {
               <div className="col-span-6">
                 <Textarea
                   {...getInputProps(fields.invoiceItemDescription, { type: 'text' })}
-                  defaultValue={data.invoiceItemDescription}
+                  defaultValue={(data as { invoiceItemDescription?: string }).invoiceItemDescription || ""}
                   placeholder="Item name & description"
                 />
                 <p className="text-red-500 text-sm">
@@ -330,8 +336,21 @@ export function EditInvoice({ data }: iAppProps) {
               <SubmitButton text="Update Invoice" />
             </div>
           </div>
-        </form>
-      </CardContent>
-    </Card>
+          </form>
+        </CardContent>
+      </Card>
+
+      {/* Payment Section */}
+      <PaymentRecorder
+        invoiceId={data.id}
+        total={data.total}
+        totalPaid={data.totalPaid || 0}
+        status={data.status}
+        date={data.date}
+        dueDate={data.dueDate}
+        currency={data.currency}
+        payments={data.payments || []}
+      />
+    </div>
   );
 }
