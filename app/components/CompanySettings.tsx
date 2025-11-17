@@ -16,7 +16,7 @@ import { Company } from "@prisma/client";
 export function CompanySettings({ data }: { data?: Company | null }) {
   const [lastResult, action] = useActionState(updateCompany, undefined);
   const [form, fields] = useForm({
-    lastResult,
+    lastResult: lastResult && 'success' in lastResult ? undefined : lastResult,
     onValidate({ formData }) {
       return parseWithZod(formData, { schema: companySchema });
     },

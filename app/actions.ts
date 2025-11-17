@@ -31,8 +31,8 @@ export async function onboardUser(prevState: unknown, formData: FormData) {
     },
   });
 
-  return   revalidatePath("/dashboard");
-  return { success: true };
+  revalidatePath("/dashboard");
+  return submission.reply();
 }
 
 export async function createInvoice(prevState: unknown, formData: FormData) {
@@ -101,7 +101,7 @@ export async function createInvoice(prevState: unknown, formData: FormData) {
   });
 
   revalidatePath("/dashboard/invoices");
-  return { success: true };
+  return submission.reply();
 }
 
 export async function editInvoice(prevState: unknown, formData: FormData) {
@@ -180,7 +180,7 @@ export async function editInvoice(prevState: unknown, formData: FormData) {
   });
 
   revalidatePath("/dashboard/invoices");
-  return { success: true };
+  return submission.reply();
 }
 
 export async function DeleteInvoice(invoiceId: string) {
@@ -260,7 +260,7 @@ export async function updateCompany(prevState: unknown, formData: FormData) {
     });
   }
 
-  return { success: true };
+  return submission.reply();
 }
 
 export async function recordPayment(
@@ -285,7 +285,9 @@ export async function recordPayment(
   });
 
   if (!invoice) {
-    return { error: "Invoice not found" };
+    return submission.reply({
+      formErrors: ["Invoice not found"]
+    });
   }
 
   // Create payment record
@@ -312,5 +314,5 @@ export async function recordPayment(
   });
 
   revalidatePath(`/dashboard/invoices/${invoiceId}`);
-  return { success: true };
+  return submission.reply();
 }
