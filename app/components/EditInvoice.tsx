@@ -25,8 +25,9 @@ import { useActionState, useState } from "react";
 import { useForm } from "@conform-to/react";
 import { parseWithZod } from "@conform-to/zod";
 import { invoiceSchema } from "../utils/zodSchemas";
-import { createInvoice, editInvoice } from "../actions";
+import { editInvoice } from "../actions";
 import { formatCurrency } from "../utils/formatCurrency";
+import { getInputProps } from "@conform-to/react";
 import { Prisma } from "@prisma/client";
 
 interface iAppProps {
@@ -75,8 +76,7 @@ export function EditInvoice({ data }: iAppProps) {
             <div className="flex items-center gap-4">
               <Badge variant="secondary">Draft</Badge>
               <Input
-                name={fields.invoiceName.name}
-                key={fields.invoiceName.key}
+                {...getInputProps(fields.invoiceName, { type: 'text' })}
                 defaultValue={data.invoiceName}
                 placeholder="Test 123"
               />
@@ -92,8 +92,7 @@ export function EditInvoice({ data }: iAppProps) {
                   #
                 </span>
                 <Input
-                  name={fields.invoiceNumber.name}
-                  key={fields.invoiceNumber.key}
+                  {...getInputProps(fields.invoiceNumber, { type: 'number' })}
                   defaultValue={data.invoiceNumber}
                   className="rounded-l-none"
                   placeholder="5"
@@ -107,9 +106,9 @@ export function EditInvoice({ data }: iAppProps) {
             <div>
               <Label>Currency</Label>
               <Select
-                defaultValue="USD"
                 name={fields.currency.name}
                 key={fields.currency.key}
+                defaultValue={data.currency}
                 onValueChange={(value) => setCurrency(value)}
               >
                 <SelectTrigger>
@@ -131,25 +130,22 @@ export function EditInvoice({ data }: iAppProps) {
               <Label>From</Label>
               <div className="space-y-2">
                 <Input
-                  name={fields.fromName.name}
-                  key={fields.fromName.key}
+                  {...getInputProps(fields.fromName, { type: 'text' })}
                   placeholder="Your Name"
                   defaultValue={data.fromName}
                 />
                 <p className="text-red-500 text-sm">{fields.fromName.errors}</p>
                 <Input
+                  {...getInputProps(fields.fromEmail, { type: 'email' })}
                   placeholder="Your Email"
-                  name={fields.fromEmail.name}
-                  key={fields.fromEmail.key}
                   defaultValue={data.fromEmail}
                 />
                 <p className="text-red-500 text-sm">
                   {fields.fromEmail.errors}
                 </p>
                 <Input
+                  {...getInputProps(fields.fromAddress, { type: 'text' })}
                   placeholder="Your Address"
-                  name={fields.fromAddress.name}
-                  key={fields.fromAddress.key}
                   defaultValue={data.fromAddress}
                 />
                 <p className="text-red-500 text-sm">
@@ -162,8 +158,7 @@ export function EditInvoice({ data }: iAppProps) {
               <Label>To</Label>
               <div className="space-y-2">
                 <Input
-                  name={fields.clientName.name}
-                  key={fields.clientName.key}
+                  {...getInputProps(fields.clientName, { type: 'text' })}
                   defaultValue={data.clientName}
                   placeholder="Client Name"
                 />
@@ -171,8 +166,7 @@ export function EditInvoice({ data }: iAppProps) {
                   {fields.clientName.errors}
                 </p>
                 <Input
-                  name={fields.clientEmail.name}
-                  key={fields.clientEmail.key}
+                  {...getInputProps(fields.clientEmail, { type: 'email' })}
                   defaultValue={data.clientEmail}
                   placeholder="Client Email"
                 />
@@ -180,8 +174,7 @@ export function EditInvoice({ data }: iAppProps) {
                   {fields.clientEmail.errors}
                 </p>
                 <Input
-                  name={fields.clientAddress.name}
-                  key={fields.clientAddress.key}
+                  {...getInputProps(fields.clientAddress, { type: 'text' })}
                   defaultValue={data.clientAddress}
                   placeholder="Client Address"
                 />
@@ -219,7 +212,7 @@ export function EditInvoice({ data }: iAppProps) {
                     selected={selectedDate}
                     onSelect={(date) => setSelectedDate(date || new Date())}
                     mode="single"
-                    fromDate={new Date()}
+                    disabled={{ before: new Date() }}
                   />
                 </PopoverContent>
               </Popover>
@@ -257,8 +250,7 @@ export function EditInvoice({ data }: iAppProps) {
             <div className="grid grid-cols-12 gap-4 mb-4">
               <div className="col-span-6">
                 <Textarea
-                  name={fields.invoiceItemDescription.name}
-                  key={fields.invoiceItemDescription.key}
+                  {...getInputProps(fields.invoiceItemDescription, { type: 'text' })}
                   defaultValue={data.invoiceItemDescription}
                   placeholder="Item name & description"
                 />
@@ -268,9 +260,7 @@ export function EditInvoice({ data }: iAppProps) {
               </div>
               <div className="col-span-2">
                 <Input
-                  name={fields.invoiceItemQuantity.name}
-                  key={fields.invoiceItemQuantity.key}
-                  type="number"
+                  {...getInputProps(fields.invoiceItemQuantity, { type: 'number' })}
                   placeholder="0"
                   value={quantity}
                   onChange={(e) => setQuantity(e.target.value)}
@@ -281,11 +271,9 @@ export function EditInvoice({ data }: iAppProps) {
               </div>
               <div className="col-span-2">
                 <Input
-                  name={fields.invoiceItemRate.name}
-                  key={fields.invoiceItemRate.key}
+                  {...getInputProps(fields.invoiceItemRate, { type: 'number' })}
                   value={rate}
                   onChange={(e) => setRate(e.target.value)}
-                  type="number"
                   placeholder="0"
                 />
                 <p className="text-red-500 text-sm">
@@ -330,8 +318,7 @@ export function EditInvoice({ data }: iAppProps) {
           <div>
             <Label>Note</Label>
             <Textarea
-              name={fields.note.name}
-              key={fields.note.key}
+              {...getInputProps(fields.note, { type: 'text' })}
               defaultValue={data.note ?? undefined}
               placeholder="Add your Note/s right here..."
             />

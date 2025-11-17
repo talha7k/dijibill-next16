@@ -7,20 +7,20 @@ import prisma from "./utils/db";
 import { redirect } from "next/navigation";
 import { emailClient } from "./utils/mailtrap";
 import { formatCurrency } from "./utils/formatCurrency";
-import { ZodTypeAny } from "zod";
 
-export async function onboardUser(prevState: any, formData: FormData) {
+
+export async function onboardUser(prevState: unknown, formData: FormData) {
   const session = await requireUser();
 
   const submission = parseWithZod(formData, {
-    schema: onboardingSchema as any,
+    schema: onboardingSchema,
   });
 
   if (submission.status !== "success") {
     return submission.reply();
   }
 
-  const data = await prisma.user.update({
+  await prisma.user.update({
     where: {
       id: session.user?.id,
     },
@@ -34,7 +34,7 @@ export async function onboardUser(prevState: any, formData: FormData) {
   return redirect("/dashboard");
 }
 
-export async function createInvoice(prevState: any, formData: FormData) {
+export async function createInvoice(prevState: unknown, formData: FormData) {
   const session = await requireUser();
 
   const submission = parseWithZod(formData, {
@@ -97,7 +97,7 @@ export async function createInvoice(prevState: any, formData: FormData) {
   return redirect("/dashboard/invoices");
 }
 
-export async function editInvoice(prevState: any, formData: FormData) {
+export async function editInvoice(prevState: unknown, formData: FormData) {
   const session = await requireUser();
 
   const submission = parseWithZod(formData, {
@@ -166,7 +166,7 @@ export async function editInvoice(prevState: any, formData: FormData) {
 export async function DeleteInvoice(invoiceId: string) {
   const session = await requireUser();
 
-  const data = await prisma.invoice.delete({
+  await prisma.invoice.delete({
     where: {
       userId: session.user?.id,
       id: invoiceId,
@@ -179,7 +179,7 @@ export async function DeleteInvoice(invoiceId: string) {
 export async function MarkAsPaidAction(invoiceId: string) {
   const session = await requireUser();
 
-  const data = await prisma.invoice.update({
+  await prisma.invoice.update({
     where: {
       userId: session.user?.id,
       id: invoiceId,

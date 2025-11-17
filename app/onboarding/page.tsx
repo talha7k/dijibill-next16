@@ -15,6 +15,7 @@ import { onboardUser } from "../actions";
 import { useForm } from "@conform-to/react";
 import { parseWithZod } from "@conform-to/zod";
 import { onboardingSchema } from "../utils/zodSchemas";
+import { getInputProps } from "@conform-to/react";
 
 export default function Onboarding() {
   const [lastResult, action] = useActionState(onboardUser, undefined);
@@ -50,41 +51,35 @@ export default function Onboarding() {
             onSubmit={form.onSubmit}
             noValidate
           >
-            <div className="grid grid-cols-2 gap-4">
-              <div className="flex flex-col gap-2">
-                <Label>First Name</Label>
-                <Input
-                  name={fields.firstName.name}
-                  key={fields.firstName.key}
-                  defaultValue={fields.firstName.initialValue as string}
-                  placeholder="John"
-                />
-                <p className="text-red-500 text-sm">
-                  {fields.firstName.errors}
-                </p>
-              </div>
-              <div className="grid gap-2">
-                <Label>Last Name</Label>
-                <Input
-                  name={fields.lastName.name}
-                  key={fields.lastName.key}
-                  defaultValue={fields.lastName.initialValue as string}
-                  placeholder="Doe"
-                />
-                <p className="text-red-500 text-sm">{fields.lastName.errors}</p>
-              </div>
-            </div>
-
-            <div className="grid gap-2">
-              <Label>Address</Label>
-              <Input
-                name={fields.address.name}
-                key={fields.address.key}
-                defaultValue={fields.address.initialValue as string}
-                placeholder="Chad street 123"
-              />
-              <p className="text-red-500 text-sm">{fields.address.errors}</p>
-            </div>
+             <div className="grid grid-cols-2 gap-4">
+               <div>
+                 <Label>First Name</Label>
+                 <Input
+                   {...getInputProps(fields.firstName, { type: 'text' })}
+                   placeholder="John"
+                 />
+                 <p className="text-red-500 text-sm">
+                   {fields.firstName.errors}
+                 </p>
+               </div>
+               <div>
+                 <Label>Last Name</Label>
+                 <Input
+                   {...getInputProps(fields.lastName, { type: 'text' })}
+                   placeholder="Doe"
+                 />
+                 <p className="text-red-500 text-sm">{fields.lastName.errors}</p>
+               </div>
+             </div>
+ 
+             <div>
+               <Label>Address</Label>
+                 <Input
+                   {...getInputProps(fields.address, { type: 'text' })}
+                   placeholder="Chad street 123"
+                 />
+                 <p className="text-red-500 text-sm">{fields.address.errors}</p>
+             </div>
 
             <SubmitButton text="Finish onboarding" />
           </form>
