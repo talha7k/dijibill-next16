@@ -37,7 +37,9 @@ export const invoiceSchema = z.object({
   invoiceItems: z.array(z.object({
     description: z.string().min(1, "Description is required"),
     quantity: z.number().min(1, "Quantity min 1"),
-    rate: z.number().min(1, "Rate min 1"),
+    rate: z.number().min(0, "Rate min 0"),
+    productId: z.string().optional(),
+    variationId: z.string().optional(),
   })).min(1, "At least one item is required"),
 
   // Backward compatibility fields
@@ -60,4 +62,27 @@ export const paymentSchema = z.object({
   amount: z.number().min(1, "Payment amount must be greater than 0"),
   method: z.string().optional(),
   notes: z.string().optional(),
+});
+
+export const productSchema = z.object({
+  name: z.string().min(1, "Product name is required"),
+  description: z.string().optional(),
+  sku: z.string().optional(),
+  type: z.enum(["SERVICE", "PRODUCT"]).default("SERVICE"),
+  basePrice: z.number().min(0, "Price must be 0 or greater"),
+  currency: z.string().min(1, "Currency is required").default("USD"),
+  
+  // Inventory fields
+  trackStock: z.boolean().default(false),
+  stockQty: z.number().min(0, "Stock quantity must be 0 or greater").default(0),
+  minStockLevel: z.number().min(0, "Minimum stock level must be 0 or greater").default(0),
+  reorderPoint: z.number().min(0, "Reorder point must be 0 or greater").default(0),
+});
+
+export const productVariationSchema = z.object({
+  name: z.string().min(1, "Variation name is required"),
+  value: z.string().min(1, "Variation value is required"),
+  priceAdjust: z.number().default(0),
+  stockQty: z.number().min(0, "Stock quantity must be 0 or greater").default(0),
+  productId: z.string().min(1, "Product ID is required"),
 });

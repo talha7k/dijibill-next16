@@ -1,39 +1,12 @@
 "use server";
 
-import { requireUser } from "./utils/hooks";
+import { requireUser } from "../utils/hooks";
 import { parseWithZod } from "@conform-to/zod";
-import { invoiceSchema, onboardingSchema, companySchema, paymentSchema } from "./utils/zodSchemas";
-import prisma from "./utils/db";
+import { invoiceSchema } from "../utils/zodSchemas";
+import prisma from "../utils/db";
 import { revalidatePath } from "next/cache";
-import { emailClient } from "./utils/mailtrap";
-import { formatCurrency } from "./utils/formatCurrency";
-
-
-export async function onboardUser(prevState: unknown, formData: FormData) {
-  const session = await requireUser();
-
-  const submission = parseWithZod(formData, {
-    schema: onboardingSchema,
-  });
-
-  if (submission.status !== "success") {
-    return submission.reply();
-  }
-
-  await prisma.user.update({
-    where: {
-      id: session.user?.id,
-    },
-    data: {
-      firstName: submission.value.firstName,
-      lastName: submission.value.lastName,
-      address: submission.value.address,
-    },
-  });
-
-  revalidatePath("/dashboard");
-  return submission.reply();
-}
+import { emailClient } from "../utils/mailtrap";
+import { formatCurrency } from "../utils/formatCurrency";
 
 export async function createInvoice(prevState: unknown, formData: FormData) {
   const session = await requireUser();
@@ -44,6 +17,45 @@ export async function createInvoice(prevState: unknown, formData: FormData) {
 
   if (submission.status !== "success") {
     return submission.reply();
+  }
+
+  // Parse invoice items from JSON string
+  let invoiceItems;
+  try {
+    const itemsString = formData.get('invoiceItems') as string;
+    invoiceItems = itemsString ? JSON.parse(itemsString) : [];
+  } catch {
+    return submission.reply({
+      formErrors: ["Invalid invoice items format"],
+    });
+  }
+
+// Validate stock for products
+  for (const item of invoiceItems) {
+    if (item.productId) {
+      const product = await prisma.product.findUnique({
+        where: { id: item.productId },
+        include: { variations: true },
+      });
+
+      if (!product) {
+        return submission.reply({
+          formErrors: [`Product not found: ${item.productId}`],
+        });
+      }
+
+      if (product.trackStock) {
+        const currentStock = item.variationId 
+          ? product.variations.find((v: { id: string }) => v.id === item.variationId)?.stockQty || 0
+          : product.stockQty;
+
+        if (currentStock < item.quantity) {
+          return submission.reply({
+            formErrors: [`Insufficient stock for ${product.name}. Available: ${currentStock}, Required: ${item.quantity}`],
+          });
+        }
+      }
+    }
   }
 
   const data = await prisma.invoice.create({
@@ -62,9 +74,9 @@ export async function createInvoice(prevState: unknown, formData: FormData) {
       status: submission.value.status,
       total: submission.value.total,
       note: submission.value.note,
-      userId: session.user?.id,
+      userId: session.user?.id as string,
       invoiceItems: {
-        create: submission.value.invoiceItems,
+        create: invoiceItems,
       },
     },
   });
@@ -107,12 +119,66 @@ export async function createInvoice(prevState: unknown, formData: FormData) {
 export async function editInvoice(prevState: unknown, formData: FormData) {
   const session = await requireUser();
 
+  // Parse invoice items from JSON string first
+  let invoiceItems;
+  try {
+    const itemsString = formData.get('invoiceItems') as string;
+    invoiceItems = itemsString ? JSON.parse(itemsString) : [];
+  } catch {
+    return {
+      formErrors: ["Invalid invoice items format"],
+    };
+  }
+
   const submission = parseWithZod(formData, {
     schema: invoiceSchema,
   });
 
   if (submission.status !== "success") {
     return submission.reply();
+  }
+
+  // Validate stock for products
+  for (const item of invoiceItems) {
+    if (item.productId) {
+      const product = await prisma.product.findUnique({
+        where: { id: item.productId },
+        include: { variations: true },
+      });
+
+      if (!product) {
+        return submission.reply({
+          formErrors: [`Product not found: ${item.productId}`],
+        });
+      }
+
+      if (product.trackStock) {
+        const currentStock = item.variationId 
+          ? product.variations.find((v: { id: string }) => v.id === item.variationId)?.stockQty || 0
+          : product.stockQty;
+
+        // Get existing invoice items to check current stock usage
+        const existingInvoice = await prisma.invoice.findUnique({
+          where: { id: formData.get("id") as string },
+          include: { invoiceItems: true },
+        });
+
+        const existingItemQuantity = existingInvoice?.invoiceItems
+          .filter((existingItem: { productId?: string; variationId?: string }) => 
+            existingItem.productId === item.productId && 
+            existingItem.variationId === item.variationId
+          )
+          .reduce((sum: number, existingItem: { quantity: number }) => sum + existingItem.quantity, 0) || 0;
+
+        const availableStock = currentStock + existingItemQuantity;
+
+        if (availableStock < item.quantity) {
+          return submission.reply({
+            formErrors: [`Insufficient stock for ${product.name}. Available: ${availableStock}, Requested: ${item.quantity}`],
+          });
+        }
+      }
+    }
   }
 
   // First delete existing invoice items
@@ -125,7 +191,7 @@ export async function editInvoice(prevState: unknown, formData: FormData) {
   const data = await prisma.invoice.update({
     where: {
       id: formData.get("id") as string,
-      userId: session.user?.id,
+      userId: session.user?.id as string,
     },
     data: {
       clientAddress: submission.value.clientAddress,
@@ -186,9 +252,58 @@ export async function editInvoice(prevState: unknown, formData: FormData) {
 export async function DeleteInvoice(invoiceId: string) {
   const session = await requireUser();
 
+  // Get invoice with items before deletion to restore stock
+  const invoice = await prisma.invoice.findUnique({
+    where: {
+      userId: session.user?.id as string,
+      id: invoiceId,
+    },
+    include: {
+      invoiceItems: true,
+    },
+  });
+
+  if (!invoice) {
+    return { error: "Invoice not found" };
+  }
+
+  // Restore stock for products
+  for (const item of invoice.invoiceItems) {
+    if (item.productId) {
+      const product = await prisma.product.findUnique({
+        where: { id: item.productId },
+        include: { variations: true },
+      });
+
+      if (product && product.trackStock) {
+        if (item.variationId) {
+          // Update variation stock
+          await prisma.productVariation.update({
+            where: { id: item.variationId },
+            data: {
+              stockQty: {
+                increment: item.quantity,
+              },
+            },
+          });
+        } else {
+          // Update main product stock
+          await prisma.product.update({
+            where: { id: item.productId },
+            data: {
+              stockQty: {
+                increment: item.quantity,
+              },
+            },
+          });
+        }
+      }
+    }
+  }
+
   await prisma.invoice.delete({
     where: {
-      userId: session.user?.id,
+      userId: session.user?.id as string,
       id: invoiceId,
     },
   });
@@ -202,7 +317,7 @@ export async function MarkAsPaidAction(invoiceId: string) {
 
   await prisma.invoice.update({
     where: {
-      userId: session.user?.id,
+      userId: session.user?.id as string,
       id: invoiceId,
     },
     data: {
@@ -212,107 +327,4 @@ export async function MarkAsPaidAction(invoiceId: string) {
 
   revalidatePath("/dashboard/invoices");
   return { success: true };
-}
-
-export async function updateCompany(prevState: unknown, formData: FormData) {
-  const session = await requireUser();
-
-  const submission = parseWithZod(formData, {
-    schema: companySchema,
-  });
-
-  if (submission.status !== "success") {
-    return submission.reply();
-  }
-
-  const id = formData.get("id") as string;
-
-  if (id) {
-    // Update existing company
-    await prisma.company.update({
-      where: {
-        id: id,
-        userId: session.user?.id,
-      },
-      data: {
-        name: submission.value.name,
-        email: submission.value.email,
-        address: submission.value.address || null,
-        phone: submission.value.phone || null,
-        website: submission.value.website || null,
-        logo: submission.value.logo || null,
-        taxId: submission.value.taxId || null,
-      },
-    });
-  } else {
-    // Create new company
-    await prisma.company.create({
-      data: {
-        name: submission.value.name,
-        email: submission.value.email,
-        address: submission.value.address || null,
-        phone: submission.value.phone || null,
-        website: submission.value.website || null,
-        logo: submission.value.logo || null,
-        taxId: submission.value.taxId || null,
-        userId: session.user?.id as string,
-      },
-    });
-  }
-
-  return submission.reply();
-}
-
-export async function recordPayment(
-  prevState: unknown,
-  formData: FormData,
-) {
-  const session = await requireUser();
-
-  const submission = await parseWithZod(formData, {
-    schema: paymentSchema,
-  });
-
-  if (submission.status !== "success") {
-    return submission.reply();
-  }
-
-  const invoiceId = formData.get("invoiceId") as string;
-
-  // Verify user owns the invoice
-  const invoice = await prisma.invoice.findUnique({
-    where: { id: invoiceId, userId: session.user?.id },
-  });
-
-  if (!invoice) {
-    return submission.reply({
-      formErrors: ["Invoice not found"]
-    });
-  }
-
-  // Create payment record
-  await prisma.payment.create({
-    data: {
-      amount: submission.value.amount,
-      method: submission.value.method || null,
-      notes: submission.value.notes || null,
-      invoiceId: invoiceId,
-    },
-  });
-
-  // Update invoice total paid
-  const newTotalPaid = invoice.totalPaid + submission.value.amount;
-  const newStatus = newTotalPaid >= invoice.total ? "PAID" : 
-                    newTotalPaid > 0 ? "PARTIALLY_PAID" : "PENDING";
-
-  await prisma.invoice.update({
-    where: { id: invoiceId },
-    data: {
-      totalPaid: newTotalPaid,
-      status: newStatus,
-    },
-  });
-
-  revalidatePath(`/dashboard/invoices/${invoiceId}`);
-  return submission.reply();
 }

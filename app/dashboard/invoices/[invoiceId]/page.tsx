@@ -10,6 +10,14 @@ async function getData(invoiceId: string, userId: string) {
       id: invoiceId,
       userId: userId,
     },
+    include: {
+      invoiceItems: {
+        include: {
+          product: true,
+          variation: true,
+        },
+      },
+    },
   });
 
   if (!invoice) {

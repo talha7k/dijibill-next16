@@ -31,12 +31,26 @@ import { getInputProps } from "@conform-to/react";
 import { Prisma } from "@prisma/client";
 import { Payment } from "../utils/payments";
 import { PaymentRecorder } from "./PaymentRecorder";
+import { ProductSelector } from "./ProductSelector";
 
 interface iAppProps {
-  data: Prisma.InvoiceGetPayload<object> & {
+  data: Prisma.InvoiceGetPayload<{
+    include: {
+      invoiceItems: true;
+    };
+  }> & {
     payments?: Payment[];
     totalPaid?: number;
   };
+}
+
+interface InvoiceItem {
+  id: string;
+  productId: string | null;
+  variationId: string | null;
+  description: string;
+  quantity: number;
+  rate: number;
 }
 
 export function EditInvoice({ data }: iAppProps) {
@@ -55,11 +69,37 @@ export function EditInvoice({ data }: iAppProps) {
   });
 
   const [selectedDate, setSelectedDate] = useState(data.date);
-  const [rate, setRate] = useState((data as { invoiceItemRate?: number }).invoiceItemRate?.toString() || "0");
-  const [quantity, setQuantity] = useState((data as { invoiceItemQuantity?: number }).invoiceItemQuantity?.toString() || "1");
   const [currency, setCurrency] = useState(data.currency);
+  
+  // Initialize items from existing invoice data or create default item for backward compatibility
+  const [items, setItems] = useState<InvoiceItem[]>(() => {
+    if (data.invoiceItems && data.invoiceItems.length > 0) {
+      return data.invoiceItems.map((item: any) => ({
+        id: item.id,
+        productId: item.productId || null,
+        variationId: item.variationId || null,
+        description: item.description,
+        quantity: item.quantity,
+        rate: item.rate,
+      }));
+    } else {
+      // Backward compatibility: create single item from old fields
+      return [{
+        id: 'temp-' + Date.now(),
+        productId: null,
+        variationId: null,
+        description: (data as any).invoiceItemDescription || "",
+        quantity: (data as any).invoiceItemQuantity || 1,
+        rate: (data as any).invoiceItemRate || 0,
+      }];
+    }
+  });
 
-  const calcualteTotal = (Number(quantity) || 0) * (Number(rate) || 0);
+  const calculateTotal = () => {
+    return items.reduce((sum, item) => sum + (item.quantity * item.rate), 0);
+  };
+
+  const total = calculateTotal();
   return (
     <div className="space-y-8">
       <Card className="w-full max-w-4xl mx-auto">
@@ -75,7 +115,19 @@ export function EditInvoice({ data }: iAppProps) {
           <input
             type="hidden"
             name={fields.total.name}
-            value={calcualteTotal}
+            value={total}
+          />
+          {/* Hidden field for invoice items */}
+          <input
+            type="hidden"
+            name={fields.invoiceItems.name}
+            value={JSON.stringify(items.map(item => ({
+              description: item.description,
+              quantity: item.quantity,
+              rate: item.rate,
+              productId: item.productId,
+              variationId: item.variationId,
+            })))}
           />
 
           <div className="flex flex-col gap-1 w-fit mb-6">
@@ -245,58 +297,12 @@ export function EditInvoice({ data }: iAppProps) {
             </div>
           </div>
 
-          <div>
-            <div className="grid grid-cols-12 gap-4 mb-2 font-medium">
-              <p className="col-span-6">Description</p>
-              <p className="col-span-2">Quantity</p>
-              <p className="col-span-2">Rate</p>
-              <p className="col-span-2">Amount</p>
-            </div>
-
-            <div className="grid grid-cols-12 gap-4 mb-4">
-              <div className="col-span-6">
-                <Textarea
-                  {...getInputProps(fields.invoiceItemDescription, { type: 'text' })}
-                  defaultValue={(data as { invoiceItemDescription?: string }).invoiceItemDescription || ""}
-                  placeholder="Item name & description"
-                />
-                <p className="text-red-500 text-sm">
-                  {fields.invoiceItemDescription.errors}
-                </p>
-              </div>
-              <div className="col-span-2">
-                <Input
-                  {...getInputProps(fields.invoiceItemQuantity, { type: 'number' })}
-                  placeholder="0"
-                  value={quantity}
-                  onChange={(e) => setQuantity(e.target.value)}
-                />
-                <p className="text-red-500 text-sm">
-                  {fields.invoiceItemQuantity.errors}
-                </p>
-              </div>
-              <div className="col-span-2">
-                <Input
-                  {...getInputProps(fields.invoiceItemRate, { type: 'number' })}
-                  value={rate}
-                  onChange={(e) => setRate(e.target.value)}
-                  placeholder="0"
-                />
-                <p className="text-red-500 text-sm">
-                  {fields.invoiceItemRate.errors}
-                </p>
-              </div>
-              <div className="col-span-2">
-                <Input
-                  value={formatCurrency({
-                    amount: calcualteTotal,
-                    currency: currency as "USD" | "EUR",
-                  })}
-                  disabled
-                />
-              </div>
-            </div>
-          </div>
+          {/* Product Selector */}
+            <ProductSelector 
+              items={items} 
+              onItemsChange={setItems} 
+              currency={currency} 
+            />
 
           <div className="flex justify-end">
             <div className="w-1/3">
@@ -304,7 +310,7 @@ export function EditInvoice({ data }: iAppProps) {
                 <span>Subtotal</span>
                 <span>
                   {formatCurrency({
-                    amount: calcualteTotal,
+                    amount: total,
                     currency: currency as "USD" | "EUR",
                   })}
                 </span>
@@ -313,7 +319,7 @@ export function EditInvoice({ data }: iAppProps) {
                 <span>Total ({currency})</span>
                 <span className="font-medium underline underline-offset-2">
                   {formatCurrency({
-                    amount: calcualteTotal,
+                    amount: total,
                     currency: currency as "USD" | "EUR",
                   })}
                 </span>

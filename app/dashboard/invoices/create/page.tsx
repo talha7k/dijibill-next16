@@ -1,4 +1,4 @@
-import { CreateInvoice } from "@/app/components/CreateInvoice";
+import { CreateInvoice } from "@/app/components/CreateInvoiceWithProducts";
 import prisma from "@/app/utils/db";
 import { requireUser } from "@/app/utils/hooks";
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { HomeIcon, Users2, Settings } from "lucide-react";
+import { HomeIcon, Users2, Settings, Package } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -20,6 +20,12 @@ export const dashboardLinks = [
   },
   {
     id: 2,
+    name: "Products",
+    href: "/dashboard/products",
+    icon: Package,
+  },
+  {
+    id: 3,
     name: "Settings",
     href: "/dashboard/settings",
     icon: Settings,
