@@ -119,20 +119,20 @@ export async function createInvoice(prevState: unknown, formData: FormData) {
 export async function editInvoice(prevState: unknown, formData: FormData) {
   const session = await requireUser();
 
+  const submission = parseWithZod(formData, {
+    schema: invoiceSchema,
+  });
+
   // Parse invoice items from JSON string first
   let invoiceItems;
   try {
     const itemsString = formData.get('invoiceItems') as string;
     invoiceItems = itemsString ? JSON.parse(itemsString) : [];
   } catch {
-    return {
+    return submission.reply({
       formErrors: ["Invalid invoice items format"],
-    };
+    });
   }
-
-  const submission = parseWithZod(formData, {
-    schema: invoiceSchema,
-  });
 
   if (submission.status !== "success") {
     return submission.reply();
@@ -164,11 +164,11 @@ export async function editInvoice(prevState: unknown, formData: FormData) {
         });
 
         const existingItemQuantity = existingInvoice?.invoiceItems
-          .filter((existingItem: { productId?: string; variationId?: string }) => 
+          .filter((existingItem) => 
             existingItem.productId === item.productId && 
             existingItem.variationId === item.variationId
           )
-          .reduce((sum: number, existingItem: { quantity: number }) => sum + existingItem.quantity, 0) || 0;
+          .reduce((sum: number, existingItem) => sum + existingItem.quantity, 0) || 0;
 
         const availableStock = currentStock + existingItemQuantity;
 

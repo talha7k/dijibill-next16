@@ -15,15 +15,15 @@ CREATE TABLE "InvoiceItem" (
 ALTER TABLE "InvoiceItem" ADD CONSTRAINT "InvoiceItem_invoiceId_fkey" FOREIGN KEY ("invoiceId") REFERENCES "Invoice"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- Migrate existing invoice data to new structure
-INSERT INTO "InvoiceItem" (id, description, quantity, rate, invoiceId, createdAt, updatedAt)
+INSERT INTO "InvoiceItem" (id, description, quantity, rate, "invoiceId", "createdAt", "updatedAt")
 SELECT 
     gen_random_uuid() as id,
     "invoiceItemDescription" as description,
     "invoiceItemQuantity" as quantity,
     "invoiceItemRate" as rate,
-    id as invoiceId,
-    "createdAt" as createdAt,
-    "updatedAt" as updatedAt
+    id as "invoiceId",
+    "createdAt" as "createdAt",
+    "updatedAt" as "updatedAt"
 FROM "Invoice"
 WHERE "invoiceItemDescription" IS NOT NULL;
 

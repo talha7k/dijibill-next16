@@ -25,7 +25,7 @@ import { useActionState, useState } from "react";
 import { useForm } from "@conform-to/react";
 import { parseWithZod } from "@conform-to/zod";
 import { invoiceSchema } from "../utils/zodSchemas";
-import { editInvoice } from "../actions";
+import { editInvoice } from "@/app/actions";
 import { formatCurrency } from "../utils/formatCurrency";
 import { getInputProps } from "@conform-to/react";
 import { Prisma } from "@prisma/client";
@@ -54,7 +54,7 @@ interface InvoiceItem {
 }
 
 export function EditInvoice({ data }: iAppProps) {
-  const [lastResult, action] = useActionState(editInvoice, undefined);
+  const [lastResult, action] = useActionState(editInvoice, null);
   const [form, fields] = useForm({
     lastResult,
 
@@ -74,7 +74,14 @@ export function EditInvoice({ data }: iAppProps) {
   // Initialize items from existing invoice data or create default item for backward compatibility
   const [items, setItems] = useState<InvoiceItem[]>(() => {
     if (data.invoiceItems && data.invoiceItems.length > 0) {
-      return data.invoiceItems.map((item: any) => ({
+      return data.invoiceItems.map((item: {
+        id: string;
+        productId: string | null;
+        variationId: string | null;
+        description: string;
+        quantity: number;
+        rate: number;
+      }) => ({
         id: item.id,
         productId: item.productId || null,
         variationId: item.variationId || null,
@@ -88,9 +95,9 @@ export function EditInvoice({ data }: iAppProps) {
         id: 'temp-' + Date.now(),
         productId: null,
         variationId: null,
-        description: (data as any).invoiceItemDescription || "",
-        quantity: (data as any).invoiceItemQuantity || 1,
-        rate: (data as any).invoiceItemRate || 0,
+        description: (data as { invoiceItemDescription?: string }).invoiceItemDescription || "",
+        quantity: (data as { invoiceItemQuantity?: number }).invoiceItemQuantity || 1,
+        rate: (data as { invoiceItemRate?: number }).invoiceItemRate || 0,
       }];
     }
   });
